@@ -4,11 +4,7 @@ use utf8;
 use strict;
 use warnings;
 
-use HTTP::Daemon;
-use HTTP::Response;
-use HTTP::Status;
-
-use Data::Dumper;
+use IO::Socket;
 
 use constant HELLO => 'Hello, Panda!';
 

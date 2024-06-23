@@ -8,7 +8,7 @@ use open qw/:std :encoding(UTF-8)/;
 
 use Data::Dumper;
 
-use IO::Async::Function;
+use IO::Async::Handle;
 use IO::Async::Loop;
 use IO::Async::Socket;
 use IO::Async::Timer::Countdown;
@@ -67,9 +67,10 @@ sub http_get_async($$$$$) {
             );
 
             $tmr->start;
-            $loop->add( $tmr );
 
+            $loop->add( $tmr );
             $loop->add( $cls );
+
             $cls->send( $req );
 
             print "Отправлено:\n" . $req;
@@ -86,7 +87,7 @@ sub http_get_async($$$$$) {
         param => 'value',
     };
 
-    http_get_async '127.0.0.1', 8181, 'test', $params, 5;
+    http_get_async '127.0.0.1', 8181, 'test', $params, 5; # Если изменить на 1s, то будет сообщение об ошибке (сервер "спит 2s").
 
 }
 
