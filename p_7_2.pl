@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
-use lib './lib';
 use utf8;
 use feature qw/say state/;
 use strict;
 use warnings;
+use open qw/:std :encoding(UTF-8)/;
 
 use Data::Dumper;
 
@@ -31,10 +31,12 @@ sub http_get_async($$$$$) {
     my $loop  = IO::Async::Loop->new;
 
     $loop->connect(
-        host     => "127.0.0.1",
-        service  => "8181",
-        socktype => 'stream',
-
+        addr => {
+            family   => "inet",
+            socktype => "stream",
+            port     => $port,
+            ip       => $host,
+        },
         on_connected => sub {
             my ( $sock ) = @_;
             my $cls = IO::Async::Socket->new(
@@ -42,22 +44,23 @@ sub http_get_async($$$$$) {
                 on_recv => sub {
                     my ( $self, $data ) = @_;
 
-                    print "\nRecieved from $host:\n$data\n";
+                    print "\nПолучено от $host:\n$data\n";
 
                     $loop->stop;
                 },
                 on_recv_error => sub {
                     my ( $self, $errno ) = @_;
-                    die "$errno\n";
+                    die "\nОшибка $errno\n";
                 },
+                autoflush => 1,
             );
             $loop->add( $cls );
             $cls->send( $req );
 
-            print "Send:\n" . $req;
+            print "Отправлено:\n" . $req;
         },
-        on_connect_error => sub { die "Connection refused ...\n";   },
-        on_resolve_error => sub { die "Host unresolved - $_[-1]\n"; },
+        on_connect_error => sub { die "Соединение $_[0] не установлено $_[-1]\n"; },
+        on_resolve_error => sub { die "Хост не найден $_[-1]\n"; },
     );
 
     $loop->run;
