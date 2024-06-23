@@ -8,9 +8,9 @@ use open qw/:std :encoding(UTF-8)/;
 
 use Data::Dumper;
 
-use IO::Async::Socket;
-use IO::Async::Loop;
 use IO::Async::Function;
+use IO::Async::Loop;
+use IO::Async::Socket;
 use IO::Async::Timer::Countdown;
 
 sub http_get_async($$$$$) {
@@ -42,7 +42,7 @@ sub http_get_async($$$$$) {
         on_connected => sub {
             my ( $sock ) = @_;
 
-            my $timer = IO::Async::Timer::Countdown->new(
+            my $tmr = IO::Async::Timer::Countdown->new(
                delay => $timeout,
                on_expire => sub {
                   print "\nВремя ожидания ответа сервера истекло\n";
@@ -66,8 +66,8 @@ sub http_get_async($$$$$) {
                 autoflush => 1,
             );
 
-            $timer->start;
-            $loop->add( $timer );
+            $tmr->start;
+            $loop->add( $tmr );
 
             $loop->add( $cls );
             $cls->send( $req );
@@ -86,7 +86,7 @@ sub http_get_async($$$$$) {
         param => 'value',
     };
 
-    http_get_async '127.0.0.1', 8181, 'test', $params, 10;
+    http_get_async '127.0.0.1', 8181, 'test', $params, 5;
 
 }
 

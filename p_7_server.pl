@@ -42,7 +42,12 @@ use constant HELLO => 'Hello, Panda!';
             '','', HELLO();
 
         $cls->recv($req, 1024);
+
+        sleep 2;
+
         $cls->send($res);
+
+        print $req;
     }
 }
 
