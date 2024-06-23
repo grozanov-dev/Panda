@@ -33,7 +33,6 @@ sub http_get($$$$$) {
     }
 
     if( $sock ) {
-
         my $res = '';
 
         my $req = join "\r\n",
