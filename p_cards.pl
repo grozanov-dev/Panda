@@ -27,7 +27,7 @@ sub createAndShuffleDeck {
         }
     }
 
-    # в принципе я бы тут применил List::Utils qw/shuffle/
+    # в принципе я бы тут применил List::Util qw/shuffle/
     for ( my $i = @deck; --$i; ) {
         my $r = int rand ($i + 1);
         next if $i == $r;
