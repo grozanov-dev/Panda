@@ -63,3 +63,8 @@ sub http_get($$$$$) {
 
 =pod
 
+Написать функцию http_get($host, $path, $query, $timeout), которая делает
+http запрос на адрес http://$host/$path?$query с таймаутом $timeout.
+Реализация http должна быть примитивной, то есть мы рассчитываем на
+ответ HTTP 200 OK с content-length.
+$query передают в функцию хешом.

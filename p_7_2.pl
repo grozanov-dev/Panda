@@ -8,7 +8,6 @@ use open qw/:std :encoding(UTF-8)/;
 
 use Data::Dumper;
 
-use IO::Async::Handle;
 use IO::Async::Loop;
 use IO::Async::Socket;
 use IO::Async::Timer::Countdown;
@@ -30,54 +29,50 @@ sub http_get_async($$$$$) {
         "Host: $host:$port",
         "Accept: text/plain\r\n\r\n";
 
-    my $loop  = IO::Async::Loop->new;
+    my $loop = IO::Async::Loop->new;
 
-    $loop->connect(
-        addr => {
-            family   => "inet",
-            socktype => "stream",
-            port     => $port,
-            ip       => $host,
-        },
-        on_connected => sub {
-            my ( $sock ) = @_;
-
-            my $tmr = IO::Async::Timer::Countdown->new(
-               delay => $timeout,
-               on_expire => sub {
-                  print "\nВремя ожидания ответа сервера истекло\n";
-                  $loop->stop;
-               },
-            );
-
-            my $cls = IO::Async::Socket->new(
-                handle => $sock,
-                on_recv => sub {
-                    my ( $self, $data ) = @_;
-
-                    print "\nПолучено от $host:\n$data\n";
-
-                    $loop->stop;
-                },
-                on_recv_error => sub {
-                    my ( $self, $errno ) = @_;
-                    die "\nОшибка $errno\n";
-                },
-                autoflush => 1,
-            );
-
-            $tmr->start;
-
-            $loop->add( $tmr );
-            $loop->add( $cls );
-
-            $cls->send( $req );
-
-            print "Отправлено:\n" . $req;
-        },
-        on_connect_error => sub { die "Соединение $_[0] не установлено $_[-1]\n"; },
-        on_resolve_error => sub { die "Хост не найден $_[-1]\n"; },
+    my $sock = IO::Socket::INET->new (
+         PeerAddr => $host,
+         PeerPort => $port,
+         Proto    => 'tcp',
     );
+
+    die "$!\n" unless $sock;
+
+    my $timer = IO::Async::Timer::Countdown->new(
+       delay => $timeout,
+       on_expire => sub {
+          print "\nВремя ожидания ответа сервера истекло\n";
+
+          $loop->stop;
+       },
+       remove_on_expire => 1,
+    );
+
+    my $client = IO::Async::Socket->new (
+        handle => $sock,
+        on_recv => sub {
+            my ( $self, $data ) = @_;
+
+            $loop->stop;
+
+            print "\nПолучено от $host:\n$data\n";
+        },
+        on_recv_error => sub {
+            my ( $self, $errno ) = @_;
+            die "\nОшибка $errno\n";
+        },
+        autoflush => 1,
+    );
+
+    $loop->add($client);
+    $loop->add($timer);
+
+    $timer->start;
+
+    $client->send($req);
+
+    print "Отправлено:\n" . $req;
 
     $loop->run;
 }
@@ -95,3 +90,9 @@ sub http_get_async($$$$$) {
 
 =pod
 
+А также написать асинхронную версию этой функции, которая (для
+простоты задания) отличается тем, что пока ждет ответа занимается
+заполнением какого-нибудь массива числами и выводит на экран
+сколько элементов успела добавить пока ждала ответа удаленного
+сервера. Программа должна оставаться в рамках 1 процесса и 1 потока
+(т.е. без fork и без threads).
