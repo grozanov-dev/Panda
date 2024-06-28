@@ -48,7 +48,7 @@ sub createAndShuffleDeck {
     my @deck = createAndShuffleDeck;
 
     # раздача
-    # сдаём cardsPerHand курогов на handsNum рук
+    # сдаём cardsPerHand кругов на handsNum рук
     # проверки на окончание колоды нет, т.к. сдаётся всего 23 карты из 52-х.
     my @hands;
 
