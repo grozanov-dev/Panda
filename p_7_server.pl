@@ -14,17 +14,17 @@ use constant HELLO => 'Hello, Panda!';
         LocalHost => '127.0.0.1',
         LocalPort => '8181',
         Proto => 'tcp',
-        Listen => 5,
+        Listen => 2,
         Reuse => 1,
     );
 
     die "$!\n" unless $sock;
-    print "Server started ...\n";
+    print "Сервер слушает порт 8181 ...\n";
 
     $SIG{INT} = sub {
         $sock->close;
 
-        print "Server interrupted ...";
+        print "Сервер остановлен ...";
         exit 0;
     };
 

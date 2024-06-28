@@ -7,10 +7,10 @@ use warnings;
 use open qw/:std :encoding(UTF-8)/;
 
 use Data::Dumper;
+use Fcntl;
 
-use IO::Async::Loop;
-use IO::Async::Socket;
-use IO::Async::Timer::Countdown;
+use IO::Socket;
+use IO::Select;
 
 sub http_get_async($$$$$) {
     my ( $host, $port, $path, $query, $timeout ) = @_;
@@ -29,8 +29,7 @@ sub http_get_async($$$$$) {
         "Host: $host:$port",
         "Accept: text/plain\r\n\r\n";
 
-    my $loop = IO::Async::Loop->new;
-
+    # создам сокет - для простоты с помощью IO::Socket
     my $sock = IO::Socket::INET->new (
          PeerAddr => $host,
          PeerPort => $port,
@@ -39,42 +38,36 @@ sub http_get_async($$$$$) {
 
     die "$!\n" unless $sock;
 
-    my $timer = IO::Async::Timer::Countdown->new(
-       delay => $timeout,
-       on_expire => sub {
-          print "\nВремя ожидания ответа сервера истекло\n";
+    # создаём Select
+    my $select = IO::Select->new($sock);
 
-          $loop->stop;
-       },
-       remove_on_expire => 1,
-    );
+    # Делаем сокет неблокирующим
+    my $flags = fcntl $sock, F_GETFL, 0;
+    fcntl $sock, F_SETFL, $flags | O_NONBLOCK or die "fcntl: $!";
 
-    my $client = IO::Async::Socket->new (
-        handle => $sock,
-        on_recv => sub {
-            my ( $self, $data ) = @_;
-
-            $loop->stop;
-
-            print "\nПолучено от $host:\n$data\n";
-        },
-        on_recv_error => sub {
-            my ( $self, $errno ) = @_;
-            die "\nОшибка $errno\n";
-        },
-        autoflush => 1,
-    );
-
-    $loop->add($client);
-    $loop->add($timer);
-
-    $timer->start;
-
-    $client->send($req);
+    # посылаем в сокет запрос
+    syswrite $sock, $req;
 
     print "Отправлено:\n" . $req;
 
-    $loop->run;
+    my @collect;
+
+    while (1) {
+        # Считаем овец, пока сокет не ответит
+        push @collect, int rand 100;
+
+        for my $client ($select->can_read($timeout)) {
+            next unless $client == $sock; # сокет всё ещё не ответил
+
+            # читаем в буфер ответ
+            my $buf = '';
+            my $len = sysread $sock, $buf, 256;
+
+            print "Получено ($len):\n" . $buf;
+            print "\n\nПосчитано: " . scalar @collect;
+            return 1;
+        }
+    }
 }
 
 {
@@ -82,7 +75,7 @@ sub http_get_async($$$$$) {
         param => 'value',
     };
 
-    http_get_async '127.0.0.1', 8181, 'test', $params, 5; # Если изменить на 1s, то будет сообщение об ошибке (сервер "спит 2s").
+    http_get_async '127.0.0.1', 8181, 'test', $params, 5; # Если изменить на 1s, то будет сообщение об ошибке (сервер "спит" 2s, прежде чем ответить).
 
 }
 
